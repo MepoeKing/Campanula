@@ -15,7 +15,8 @@ main{max-width:960px;margin:0 auto;padding:22px 16px 48px}
 header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
 h1{font:300 34px/1.1 "Cormorant Garamond",Georgia,serif;margin:0;letter-spacing:.16em}
 h1 span{font-size:.5em;font-style:italic;letter-spacing:.04em;color:var(--mut);margin-left:.6em}
-.sub{color:var(--mut);font-size:14px;margin:4px 0 0}
+.by{margin:8px 0 0;font:400 16px/1.2 Alegreya,Georgia,serif;color:var(--t);letter-spacing:.14em;text-transform:uppercase}
+.sub{color:var(--mut);font:400 14px/1.4 Alegreya,Georgia,serif;margin:10px 0 0;letter-spacing:.14em;text-transform:uppercase}
 #go{width:56px;height:56px;border-radius:50%;border:1px solid var(--line2);background:var(--panel);color:var(--t);cursor:pointer;display:grid;place-items:center;flex:none;touch-action:manipulation}
 #go:hover{border-color:var(--t)}
 #go:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--m);outline-offset:3px}
@@ -40,6 +41,9 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 #env{grid-column:1/4;width:100%;height:74px;margin-top:8px;border-top:1px solid var(--line)}
 #mbtn{grid-column:1/4;font:inherit;background:var(--bg);color:var(--t);border:1px solid var(--line2);border-radius:3px;padding:8px;cursor:pointer;margin-bottom:4px}
 #mmsg{grid-column:1/4;margin:2px 0 4px;font-size:13.5px;color:var(--mut)}
+.sub .lat{display:block;margin-top:4px;font-size:13px;opacity:.7}
+.ded{margin-top:36px;text-align:center;font:400 13px/1 Alegreya,Georgia,serif;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+#rst{display:block;margin:14px auto 0;background:none;border:0;color:var(--mut);opacity:.6;font:inherit;font-size:11px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer}
 .grid:empty{display:none}
 details{border-top:1px solid var(--line);padding:2px 0}
 summary{cursor:pointer;font:italic 300 19px "Cormorant Garamond",Georgia,serif;padding:6px 0;list-style:none}
@@ -53,7 +57,7 @@ details .grid{padding:2px 0 10px}
 <body>
 <main>
 <header>
-  <div><h1>CAMPANULA <span>Tintinnabuli Sequencer</span></h1><p class="sub">One voice walks. The bells answer from the triad.</p></div>
+  <div><h1>CAMPANULA <span>a Tintinnabuli Sequencer</span></h1><p class="by">Giacomo Falciani</p><p class="sub">Mis liigub ja mis jääb<span class="lat">Quod movetur et quod manet</span></p></div>
   <button id="go" aria-label="Play"></button>
 </header>
 <div class="roll"><canvas id="cv"></canvas></div>
@@ -62,6 +66,7 @@ details .grid{padding:2px 0 10px}
   <span><i class="dot" style="background:var(--t)"></i>Tintinnabuli<b id="ct">–</b></span>
 </div>
 <div class="mods" id="mods"></div>
+<footer class="ded">Für Arvo<button id="rst">Reset settings</button></footer>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -152,11 +157,11 @@ function preset(k){const p=PRE[k];$("emode").value=p[0];["A","D","S","R"].forEac
 panel("Effects");
 const fxsec=cur.parentNode;let irT;
 const fxcb=()=>{if(ctx&&fx.cho)applyFx()};
-const irReq=()=>{clearTimeout(irT);irT=setTimeout(()=>{if(ctx&&fx.cv1)regenIR()},250)};
+const irReq=()=>{clearTimeout(irT);irT=setTimeout(()=>{if(ctx&&fx.cv1)regenIR()},400)};
 function sub(t,open){const d=document.createElement("details"),m=document.createElement("summary"),g=document.createElement("div");d.open=!!open;m.textContent=t;g.className="grid";d.append(m,g);fxsec.appendChild(d);cur=g}
 sub("Reverb",true);
 sld("rev","Dry / Wet",0,100,50,idn,pc,fxcb);
-sld("rtm","Time",5,100,30,v=>v/10,v=>v.toFixed(1)+" s",irReq);
+sld("rtm","Time",5,80,30,v=>v/10,v=>v.toFixed(1)+" s",irReq);
 sld("rdc","Decay",10,80,32,v=>v/10,v=>v.toFixed(1),irReq);
 sld("rpd","Pre-delay",0,200,20,idn,v=>v+" ms",fxcb);
 sld("rtn","Dark - Bright",0,100,70,idn,pc,fxcb);
@@ -214,7 +219,7 @@ const PLAY='<svg width="22" height="22" viewBox="0 0 22 22"><path d="M6 3.5v15l1
 $("go").innerHTML=PLAY;
 
 // ---------- audio ----------
-let ctx,master,dry,wet,running=false,timer=null,nextT=0,deg=0,dir=1,tflip=1;
+let active=0,ctx,master,dry,wet,running=false,timer=null,nextT=0,deg=0,dir=1,tflip=1;
 const makeIR=c=>{const len=c.sampleRate*6,b=c.createBuffer(2,len,c.sampleRate);
  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2)}return b};
 const fx={};
@@ -229,7 +234,7 @@ function applyFx(){if(!fx.cho)return;const T=ctx.currentTime,P=(p,v,k=.05)=>p.se
  [0,1].forEach(i=>{P(fx["td"+i].delayTime,get(i?"ttr":"tt"),.1);P(fx["tf"+i].gain,get("tfb")/100);P(fx["tl"+i].frequency,hz(get("ttn")))});
  fx.rvr.L=Math.round(get("rvt")*ctx.sampleRate);P(fx.rvl.frequency,hz(get("rvn")));
  P(fx.stn.frequency,hz(get("shn")));P(fx.shf.gain,get("shf")/100);
- const fz=$("rfz").value==="on";P(fx.pd.delayTime,get("rpd")/1000);P(fx.rt.frequency,hz(get("rtn")));P(fx.rin.gain,fz?0:1,.1);P(fx.rf.gain,fz?.985:0,.1)}
+ const fz=$("rfz").value==="on";P(fx.pd.delayTime,get("rpd")/1000);P(fx.rt.frequency,hz(get("rtn")));P(fx.rin.gain,fz?0:1,.1);P(fx.rf.gain,fz?.96:0,.1)}
 // octave-up pitch shifter built from two crossfaded, sawtooth-modulated delays
 function shifter(c){const W=.1,n=Math.round(W*c.sampleRate),inp=c.createGain(),out=c.createGain();
  [0,.5].forEach(ph=>{const sb=c.createBuffer(1,n,c.sampleRate),wb=c.createBuffer(1,n,c.sampleRate),s=sb.getChannelData(0),w=wb.getChannelData(0);
@@ -263,7 +268,7 @@ function buildFx(){const c=ctx;let node=c.bus;
  node.connect(master)}
 function init(){
  ctx=new (window.AudioContext||window.webkitAudioContext)();
- master=ctx.createGain();master.gain.value=.8;master.connect(ctx.destination);
+ master=ctx.createGain();master.gain.value=.8;const lim=ctx.createDynamicsCompressor();lim.threshold.value=-8;lim.ratio.value=12;lim.attack.value=.003;lim.release.value=.2;master.connect(lim);lim.connect(ctx.destination);
  dry=ctx.createGain();dry.connect(master);
  wet=1;
  ctx.bus=ctx.createGain();buildFx();applyFx();
@@ -271,7 +276,7 @@ function init(){
 }
 function voice(inst,f,t,gate,vel,pan){
  const A=get("A"),D=get("D"),Sv=get("S"),R=get("R"),ad=$("emode").value==="ad";
- gate=Math.max(gate,A+D);vel*=GAIN[inst];
+ gate=Math.max(gate,A+D);vel*=GAIN[inst];if(active>=48)return;active++;setTimeout(()=>active--,((ad?A+D:gate+R)+.1)*1000);
  const g=ctx.createGain(),p=ctx.createStereoPanner();p.pan.value=pan;p.connect(ctx.bus);const ft=$("ftype").value;
  if(ft==="off")g.connect(p);
  else{const fl=ctx.createBiquadFilter(),cf=get("fc"),am=get("fam")/100,cl=x=>Math.min(18000,Math.max(30,x)),pk=cl(cf*Math.pow(2,am*5)),tg=ad?cf:cl(cf*Math.pow(2,am*5*Sv));
@@ -308,7 +313,7 @@ function tDeg(d,S,up){const n=S.length,tri=TRIS[$("chord").value].map(x=>x%n);le
 function nn(s){const r=Math.round(s*2)/2,b=Math.floor(r),m=60+b;return NAMES[mod(m,12)]+(Math.floor(m/12)-1)+(r%1?"+":"")}
 const events=[];
 function tick(){
- const S=getScale(),key=+$("key").value,step=60/get("bpm")*+$("div").value,rng=get("rng");
+ const S=getScale(),key=+$("key").value,step=Math.max(.06,60/get("bpm")*+$("div").value),rng=get("rng");
  while(nextT<ctx.currentTime+.4){
   const rest=Math.random()>=get("ma")/100;
   if(Math.random()<get("turn")/100)dir*=-1;
@@ -381,6 +386,13 @@ function drawEnv(){
  g.lineWidth=1.5*d;g.strokeStyle=MC;g.stroke();
  g.lineTo(pts[pts.length-1][0],yb);g.lineTo(p,yb);g.fillStyle="rgba(143,166,224,.12)";g.fill();
 }
+// ---------- remember settings between visits ----------
+const KEY="campanula.v1",ctrls=()=>[...document.querySelectorAll("#mods input,#mods select")];
+function save(){try{const o={};ctrls().forEach(e=>o[e.id]=e.value);localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}
+(function(){try{const o=JSON.parse(localStorage.getItem(KEY)||"{}");ctrls().forEach(e=>{const v=o[e.id];if(v==null||e.id==="mout")return;
+ if(e.tagName==="SELECT"&&![...e.options].some(x=>x.value===v))return;e.value=v;if(MAPS[e.id])upd(e.id)})}catch(e){}})();
+$("mods").addEventListener("input",save);$("mods").addEventListener("change",save);
+$("rst").addEventListener("click",()=>{try{localStorage.removeItem(KEY)}catch(e){}location.reload()});
 function layout(){fit(cv);fit(ev);drawEnv()}
 window.addEventListener("resize",layout);
 layout();
