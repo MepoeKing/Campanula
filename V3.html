@@ -98,7 +98,7 @@ const SCALES={
  "Micro: slendro (5 equal)":[0,240,480,720,960],
  "Micro: 7 equal":[0,171.4,342.9,514.3,685.7,857.1,1028.6]};
 const INST={bell:"Bell",piano:"Piano",koto:"Koto",cello:"Cello",violin:"Violin",fm:"FM sine 8-bit",pad:"Ambient pad",add:"Additive / FM"};
-const GAIN={bell:.45,piano:.45,koto:.4,cello:.3,violin:.25,fm:.25,pad:.25,add:.35};
+const GAIN={bell:1,piano:1,koto:.9,cello:.6,violin:.5,fm:.5,pad:.5,add:.8};
 const PRE={bell:["ad",20,92,0,60],piano:["ad",15,80,0,50],koto:["ad",5,62,0,40],fm:["adsr",10,50,60,50],
  cello:["adsr",65,50,80,65],violin:["adsr",58,45,85,60],pad:["adsr",85,70,75,85],add:["adsr",15,55,70,55]};
 const EM={A:p=>.005*Math.pow(1200,p/100),D:p=>.05*Math.pow(200,p/100),S:p=>p/100,R:p=>.05*Math.pow(160,p/100)};
@@ -136,7 +136,7 @@ function breath(f,g){const s=ctx.createBufferSource();s.buffer=nbuf("white");s.l
 function drone(){dstop();if(!ctx||!running||$("don").value==="off")return;
  const S=getScale(),key=+$("key").value,oc=+$("dact").value,T=ctx.currentTime,tm=$("dtim").value,E=envv("d"),
   dg=({root:[0],fifth:[0,4],third:[0,2],triad:[0,2,4],seven:[0,6],seventh:[0,2,4,6]})[$("drn").value]||[0],
-  f0=130.81*Math.pow(2,key/12+oc),fs=dg.map(d=>f0*Math.pow(2,cents(d,S)/1200)),g=ctx.createGain(),lvl=get("drl")/100*.08;
+  f0=130.81*Math.pow(2,key/12+oc),fs=dg.map(d=>f0*Math.pow(2,cents(d,S)/1200)),g=ctx.createGain(),lvl=get("drl")/100*.12;
  g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(lvl,T+Math.max(E.A,.05));const dfl=ctx.createBiquadFilter();dfl.type="lowpass";dfl.frequency.value=get("dcut");g.connect(dfl);dfl.connect(ctx.bus);drn.f=dfl;if(MOD.sum){MOD.sum.dlev.connect(g.gain);MOD.sum.dflt.connect(dfl.detune)}
  const add=(ty,fr,a,det=0,flt)=>{const o=ctx.createOscillator(),x=ctx.createGain();o.type=ty;o.frequency.value=fr;o.detune.value=det;if(MOD.sum)MOD.sum.dpit.connect(o.detune);x.gain.value=a;o.connect(x);
   if(flt){const b=ctx.createBiquadFilter();b.type="lowpass";b.frequency.value=flt;x.connect(b);b.connect(g)}else x.connect(g);o.start();drn.push(o)};
@@ -174,12 +174,12 @@ const LOW=!IOS&&/Android/i.test(navigator.userAgent)&&(navigator.deviceMemory||4
 const lite=()=>$("perf").value==="lite"||($("perf").value==="auto"&&LOW);
 function subp(t,open){const sec=cur.closest(".panel"),d=document.createElement("details"),m=document.createElement("summary"),g=document.createElement("div");d.open=!!open;m.textContent=t;g.className="grid";d.append(m,g);sec.appendChild(d);cur=g}
 panel("Master");
-sld("vol","Volume",0,100,36,v=>v/100*1.0,v=>Math.round(v*100)+"%",()=>{if(master)master.gain.setTargetAtTime(get("vol"),ctx.currentTime,.05)});
+sld("vol","Volume",0,100,60,v=>v/100*2.5,v=>Math.round(v/2.5*100)+"%",()=>{if(master)master.gain.setTargetAtTime(get("vol"),ctx.currentTime,.05)});
 sel("perf","Performance",{auto:"Auto (Lite only on weaker Android)",std:"Standard",lite:"Lite (weaker phones)"},"auto");
 subp("Mixer",true);
-sld("lm","M-Voice",0,100,27,idn,pc);
-sld("lt","T-Voice",0,100,27,idn,pc);
-sld("drl","Drone level",0,100,41,idn,pc,()=>{if(drn.g&&ctx)drn.g.gain.setTargetAtTime(get("drl")/100*.08,ctx.currentTime,.1);if(ctx&&MOD.sum)applyMod()});
+sld("lm","M-Voice",0,100,100,v=>v/100,v=>Math.round(v*100)+"%");
+sld("lt","T-Voice",0,100,100,v=>v/100,v=>Math.round(v*100)+"%");
+sld("drl","Drone level",0,100,40,idn,pc,()=>{if(drn.g&&ctx)drn.g.gain.setTargetAtTime(get("drl")/100*.12,ctx.currentTime,.1);if(ctx&&MOD.sum)applyMod()});
 sel("don","Drone on/off",{off:"Off",on:"On"},"off",()=>drone());
 panel("Harmony");
 sel("scale","Scale",sc,"Natural minor",()=>drone());
@@ -312,7 +312,7 @@ function mkSrc(L,shape){dropSrc(L);let s2;
  else{s2=ctx.createOscillator();s2.type=shape}
  s2.connect(L.dg);s2.start();L.src=s2;L.shape=shape}
 function applyMod(){if(!MOD.sum)return;const T=ctx.currentTime,bpm=get("bpm");
- MOD.sum.dlev.gain.setTargetAtTime(get("drl")/100*.08*.9,T,.05);
+ MOD.sum.dlev.gain.setTargetAtTime(get("drl")/100*.12*.9,T,.05);
  MOD.l.forEach((L,i)=>{const n=i+1,dest=$("m"+n+"t").value,shape=$("m"+n+"s").value;
   if(dest!==L.dest){if(L.dest!=="none")L.dg.disconnect(MOD.sum[L.dest]);if(dest!=="none")L.dg.connect(MOD.sum[dest]);L.dest=dest}
   if(dest==="none"){dropSrc(L);return}
@@ -401,6 +401,7 @@ function applyFx(){if(!fx.cho)return;const T=ctx.currentTime,P=(p,v,k=.05)=>p.se
  fx.rvr.L=Math.round(get("rvt")*ctx.sampleRate);P(fx.rvl.frequency,hz(get("rvn")));
  P(fx.stn.frequency,hz(get("shn")));P(fx.shf.gain,get("shf")/100);
  const fz=$("rfz").value==="on";P(fx.pd.delayTime,get("rpd")/1000);P(fx.rt.frequency,hz(get("rtn")));P(fx.rin.gain,fz?0:1,.1);P(fx.rf.gain,fz?.96:0,.1)}
+// octave-up pitch shifter built from two crossfaded, sawtooth-modulated delays
 function shifter(c){const W=.1,n=Math.round(W*c.sampleRate),inp=c.createGain(),out=c.createGain();
  [0,.5].forEach(ph=>{const sb=c.createBuffer(1,n,c.sampleRate),wb=c.createBuffer(1,n,c.sampleRate),s=sb.getChannelData(0),w=wb.getChannelData(0);
   for(let i=0;i<n;i++){const p=(i/n+ph)%1;s[i]=W*(1-p);w[i]=Math.pow(Math.sin(Math.PI*p),2)}
@@ -408,11 +409,13 @@ function shifter(c){const W=.1,n=Math.round(W*c.sampleRate),inp=c.createGain(),o
   ss.buffer=sb;ws.buffer=wb;ss.loop=ws.loop=true;d.delayTime.value=0;g.gain.value=0;
   ss.connect(d.delayTime);ws.connect(g.gain);inp.connect(d);d.connect(g);g.connect(out);ss.start();ws.start()});
  return [inp,out]}
+// reverse delay: records a segment, plays it back reversed
 function reverser(c){const sp=c.createScriptProcessor(lite()?8192:4096,1,1),N=Math.round(4*c.sampleRate),a=new Float32Array(N),b=new Float32Array(N),f=Math.round(c.sampleRate*.01);let pos=0;sp.L=c.sampleRate;
  sp.onaudioprocess=e=>{const i=e.inputBuffer.getChannelData(0),o=e.outputBuffer.getChannelData(0);
   for(let k=0;k<i.length;k++){const L=sp.L;a[pos]=i[k];o[k]=b[pos];pos++;
    if(pos>=L){for(let j=0;j<L;j++){const g=j<f?j/f:j>L-f?(L-j)/f:1;b[j]=a[L-1-j]*g}pos=0}}};
  return sp}
+// serial chain: chorus > tape > reverse > shimmer > reverb, each with its own dry/wet
 function buildFx(){const c=ctx;let node=c.bus;
  const stage=(n,fi,fo)=>{const o=c.createGain(),d=c.createGain(),w=c.createGain();node.connect(d);d.connect(o);w.connect(o);fx[n]={d,w,src:node,fi,fo,on:false};node=o};
  const cin=c.createGain(),mg=c.createChannelMerger(2),lfo=c.createOscillator();lfo.frequency.value=.8;lfo.start();fx.lfo=lfo;fx.clg=[];
@@ -431,7 +434,7 @@ function buildFx(){const c=ctx;let node=c.bus;
  node.connect(master)}
 function init(){
  ctx=new (window.AudioContext||window.webkitAudioContext)(lite()?{latencyHint:"playback"}:{});
- master=ctx.createGain();master.gain.value=get("vol");const lim=ctx.createDynamicsCompressor(),sk=ctx.createWaveShaper(),cc=new Float32Array(2049);for(let i=0;i<2049;i++){const x=i/1024-1,q=Math.abs(x);cc[i]=Math.sign(x)*(q<.9?q:.9+.1*Math.tanh((q-.9)/.1))}sk.curve=cc;sk.oversample="4x";lim.threshold.value=-12;lim.ratio.value=8;lim.attack.value=.003;lim.release.value=.25;master.connect(lim);lim.connect(sk);sk.connect(ctx.destination);
+ master=ctx.createGain();master.gain.value=get("vol");const lim=ctx.createDynamicsCompressor(),sk=ctx.createWaveShaper(),cc=new Float32Array(2049);for(let i=0;i<2049;i++){const x=i/1024-1,q=Math.abs(x);cc[i]=Math.sign(x)*(q<.9?q:.9+.1*Math.tanh((q-.9)/.1))}sk.curve=cc;sk.oversample="4x";lim.threshold.value=-8;lim.ratio.value=12;lim.attack.value=.003;lim.release.value=.25;master.connect(lim);lim.connect(sk);sk.connect(ctx.destination);
  dry=ctx.createGain();dry.connect(master);
  wet=1;
  ctx.bus=ctx.createGain();buildFx();buildMod();applyFx();applyMod();
@@ -519,8 +522,8 @@ function tick(){
    const dm=deg+S.length*(+$("moct").value),t=tl==null?null:tl+S.length*(+$("toct").value),at0=nextT,rh=rnd()<get("rch")/100?get("rat"):1,sub=step/rh;
    const sa=rest?null:semi(dm,S,key),sb=t==null?null:semi(t,S,key);
    for(let h=0;h<rh;h++){const hu=get("hum")/100,at=at0+h*sub+(Math.random()-.5)*hu*.05,gate=sub*.95,vr=1-hu*Math.random()*.6,sn=$("isnd").value==="on",bl=dv/rh*.95,bs=recBeat+h*dv/rh;
-    if(!rest){if(sn)voice($("im").value,freq(dm,S,key),at,gate,.22*vr*get("lm")/100,-.25,"m");mnote(+$("mch1").value,sa,at,gate,90);REC.push({v:"m",n:60+sa,b:bs,l:bl})}
-    if(t!=null){if(sn)voice($("it").value,freq(t,S,key),at+.02,gate,.17*vr*get("lt")/100,.25,"t");mnote(+$("mch2").value,sb,at+.02,gate,70);REC.push({v:"t",n:60+sb,b:bs,l:bl})}
+    if(!rest){if(sn)voice($("im").value,freq(dm,S,key),at,gate,.22*vr*get("lm"),-.25,"m");mnote(+$("mch1").value,sa,at,gate,90);REC.push({v:"m",n:60+sa,b:bs,l:bl})}
+    if(t!=null){if(sn)voice($("it").value,freq(t,S,key),at+.02,gate,.17*vr*get("lt"),.25,"t");mnote(+$("mch2").value,sb,at+.02,gate,70);REC.push({v:"t",n:60+sb,b:bs,l:bl})}
     const dur=k=>{const E=envv(k),dd=E.ad?Math.min(gate,E.A+E.D):Math.max(gate,E.A+E.D);return [dd,E.ad?Math.max(0,E.A+E.D-dd):E.R]},[d1,t1]=dur("m"),[d2,t2]=dur("t");
     events.push({t:at,d:d1,tail:t1,d2,tail2:t2,a:sa,b:sb,an:sa==null?"":nn(sa),bn:sb==null?"":nn(sb)});
     while(events.length&&events[0].t<ctx.currentTime-40)events.shift();
@@ -596,7 +599,7 @@ function drawEnv(){
  g.lineTo(pts[pts.length-1][0],yb);g.lineTo(p,yb);g.globalAlpha=.12;g.fillStyle=EC[$("esel").value];g.fill();g.globalAlpha=1;
 }
 // ---------- remember settings between visits ----------
-const KEY="campanula.v2",ctrls=()=>[...document.querySelectorAll("#mods input,#mods select")];
+const KEY="campanula.v1",ctrls=()=>[...document.querySelectorAll("#mods input,#mods select")];
 function save(){try{const o={};ctrls().forEach(e=>o[e.id]=e.value);o.__ha=HA;o.__hb=HB;o.__env=ENV;localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}
 (function(){try{const o=JSON.parse(localStorage.getItem(KEY)||"{}");if(Array.isArray(o.__ha)&&o.__ha.length===16)HA=o.__ha;if(Array.isArray(o.__hb)&&o.__hb.length===16)HB=o.__hb;if(o.__env&&o.__env.m&&o.__env.t&&o.__env.f&&o.__env.d)ENV=o.__env;ctrls().forEach(e=>{const v=o[e.id];if(v==null||e.id==="mout")return;
  if(e.tagName==="SELECT"&&![...e.options].some(x=>x.value===v))return;e.value=v;if(MAPS[e.id])upd(e.id)})}catch(e){}})();
